@@ -134,9 +134,10 @@ static int write_tree_level(IndexEntry *entries, int count, const char *prefix, 
 }
 
 int tree_from_index(ObjectID *id_out) {
-    Index idx;
-    if (index_load(&idx) != 0) return -1;
-    if (idx.count == 0) {
+    Index *idx = malloc(sizeof(Index));
+    if (!idx) return -1;
+    if (index_load(idx) != 0) return -1;
+    if (idx->count == 0) {
         // Empty tree
         Tree empty;
         empty.count = 0;
@@ -146,6 +147,6 @@ int tree_from_index(ObjectID *id_out) {
         free(data);
         return rc;
     }
-    int rc = write_tree_level(idx.entries, idx.count, "", id_out);
+    int rc = write_tree_level(idx->entries, idx->count, "", id_out);
     return rc;
 }

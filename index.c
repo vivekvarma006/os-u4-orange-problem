@@ -128,15 +128,17 @@ int index_load(Index *index) {
 }
 
 int index_save(const Index *index) {
-    // Make a sorted copy
-    Index sorted = *index;
-    qsort(sorted.entries, sorted.count, sizeof(IndexEntry), compare_entries);
+    // Make a heap-allocated sorted copy to avoid stack overflow
+    Index *sorted = malloc(sizeof(Index));
+    if (!sorted) return -1;
+    *sorted = *index;
+    qsort(sorted->entries, sorted->count, sizeof(IndexEntry), compare_entries);
 
     FILE *f = fopen(INDEX_FILE ".tmp", "w");
-    if (!f) return -1;
+    if (!f) { free(sorted); return -1; }
 
-    for (int i = 0; i < sorted.count; i++) {
-        IndexEntry *e = &sorted.entries[i];
+    for (int i = 0; i < sorted->count; i++) {
+        IndexEntry *e = &sorted->entries[i];
         char hex[HASH_HEX_SIZE + 1];
         hash_to_hex(&e->hash, hex);
         fprintf(f, "%o %s %lu %u %s\n",
@@ -145,6 +147,7 @@ int index_save(const Index *index) {
     fflush(f);
     fsync(fileno(f));
     fclose(f);
+    free(sorted);
 
     return rename(INDEX_FILE ".tmp", INDEX_FILE);
 }
